@@ -1,0 +1,38 @@
+name: Actualizar horarios
+on:
+  schedule:
+    - cron: "0 4 * * *"   # 06:00 en horario de verano (CEST)
+    - cron: "0 5 * * *"   # 06:00 en horario de invierno (CET)
+  workflow_dispatch:       # permite lanzarlo a mano desde la pestaña Actions
+permissions:
+  contents: write
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Comprobar que son las 6:00 en Barcelona
+        id: hora
+        run: |
+          H=$(TZ=Europe/Madrid date +%H)
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "$H" = "06" ]; then
+            echo "ejecutar=si" >> "$GITHUB_OUTPUT"
+          else
+            echo "ejecutar=no" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.hora.outputs.ejecutar == 'si'
+      - uses: actions/setup-python@v5
+        if: steps.hora.outputs.ejecutar == 'si'
+        with:
+          python-version: "3.12"
+      - name: Descargar el GTFS y generar data/data.json
+        if: steps.hora.outputs.ejecutar == 'si'
+        run: python scripts/build_data.py
+      - name: Guardar los cambios
+        if: steps.hora.outputs.ejecutar == 'si'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/data.json
+          git commit -m "Actualizar horarios $(date -u +%F)" || echo "Sin cambios"
+          git push
