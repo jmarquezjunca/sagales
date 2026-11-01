@@ -7,21 +7,21 @@ import argparse, csv, io, json, re, sys, time, urllib.request, zipfile
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
-
+ 
 URL = ("https://territori.gencat.cat/web/.content/home/serveis/visors-cartografia/"
        "bases-cartografiques/infraestructures-mobilitat/autobusos-interurbans/busos-interurbans-GTFS.zip")
 ROOT = Path(__file__).resolve().parent.parent
 LINEAS = ["360", "361", "389.1", "389.2", "389.3", "389.4"]
 LINE_RE = re.compile(r"(?<![\w.])(360|361|389\.[1-4])(?!\d)")
 MUNI = {"Mollet": "M", "Sant Fost": "S"}
-
+ 
 def limpiar(n):  # mismo criterio con el que se hizo el Excel de paradas
     n = re.sub(r"\s*(MB\d+|PNL|parada bus|TAD)\b", "", n)
     n = re.sub(r"\s*\((A|D)\)\s*", "", n)
     n = re.sub(r"\s+", " ", n).strip()
     n = re.sub(r"^c\. ", "", n)
     return n[:1].upper() + n[1:]
-
+ 
 def filas(z, nombre):
     try:
         f = z.open(nombre)
@@ -29,11 +29,11 @@ def filas(z, nombre):
         return
     with f:
         yield from csv.DictReader(io.TextIOWrapper(f, encoding="utf-8-sig"))
-
+ 
 def minutos(t):
     h, m, s = (int(x) for x in t.split(":"))
-    return h * 60 + m + (1 if s >= 30 else 0)
-
+    return h * 60 + m  # se truncan los segundos, igual que el horario oficial en PDF
+ 
 def descargar(destino):
     for i in range(3):
         try:
@@ -45,7 +45,7 @@ def descargar(destino):
             print(f"Intento {i+1} fallido: {e}", file=sys.stderr)
             time.sleep(10)
     sys.exit("No se pudo descargar el GTFS de la Generalitat")
-
+ 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--zip")
@@ -115,6 +115,7 @@ def main():
     if sin_clasificar:
         print("AVISO: paradas nuevas sin clasificar (se ignoran hasta añadirlas a paradas_municipios.csv):")
         for n in sorted(sin_clasificar): print("  -", n)
-
+ 
 if __name__ == "__main__":
     main()
+ 
