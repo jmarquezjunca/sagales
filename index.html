@@ -21,7 +21,7 @@ button,input{font:inherit;color:inherit}button{cursor:pointer;border:0;backgroun
 header{flex:none;padding:calc(10px + env(safe-area-inset-top)) 12px 0}
 .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 h1{margin:0;font-size:21px;font-weight:800;letter-spacing:-.4px}
-.clock{text-align:right;line-height:1.15}.clock b{display:block;font-size:14px;font-weight:800}.clock span{font-size:10px;color:var(--g)}
+.clock{text-align:right;line-height:1.15}.clock b{display:block;font-size:14px;font-weight:800}.clock span{display:block;font-size:10px;color:var(--g);max-width:230px;margin-left:auto}
 .card{background:#fff;border-radius:18px;box-shadow:0 1px 2px rgba(15,31,61,.05),0 6px 18px rgba(15,31,61,.05)}
 .ctl{display:flex;gap:6px;padding:5px;align-items:center;margin-bottom:5px}
 .fld{flex:1;height:32px;border-radius:11px;background:var(--fld);display:flex;align-items:center;padding:0 10px;min-width:0}
@@ -77,7 +77,7 @@ const nowMin=()=>{const d=new Date();return d.getHours()*60+d.getMinutes()};
 const lab=d=>d.toLocaleDateString("es-ES",{weekday:"short",day:"numeric",month:"short"}),iso=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
 const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
 const dtl=d=>HOL.has(ymd(d))?"Festivo":["Domingo","Laborable","Laborable","Laborable","Laborable","Laborable","Sábado"][d.getDay()];
-const clock=()=>`<div class="clock"><b id="ck">${fmt(nowMin())}</b><span>${dtl(tab==1?day:today())}</span></div>`;
+const clock=s=>`<div class="clock"><b id="ck">${fmt(nowMin())}</b><span>${s||dtl(tab==1?day:today())}</span></div>`;
 const AIM='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>';
 function dist(a,b,c,d){const R=6371000,r=Math.PI/180,x=(d-b)*r*Math.cos((a+c)*r/2),y=(c-a)*r;return Math.hypot(x,y)*R}
 function lect(dt){const k=ymd(dt),w=dt.getDay();return w>0&&w<6&&!HOL.has(k)&&k>=D.curso[0]&&k<=D.curso[1]&&!D.vacas.some(v=>k>=v[0]&&k<=v[1])}
@@ -95,12 +95,12 @@ function nextService(l,from){for(let i=1;i<=30;i++){const x=addD(from,i);if(tabl
 function near(T){if(!pos)return null;let b=null;T.r.forEach((r,i)=>{const s=ST[r[0]];if(!s||s[0]==null||r[0]=="4724")return;const d=dist(pos[0],pos[1],s[0],s[1]);if(!b||d<b.d)b={i,d,c:r[0],n:r[1]}});return b}
 function header(){let h="";
  if(tab==1){const t=today(),tm=addD(t,1),k=ymd(day),T=tableFor(line,day,dir),two=tablesFor(line,day).length>1;
-  const en=d=>{const X=tableFor(line,day,d);return X?ends(X):["",""]},lb=d=>(MN[en(d)[0]]||"")+" → "+(MN[en(d)[1]]||"");
+  const en=d=>{const X=tableFor(line,day,d);return X?ends(X):["",""]},lb=d=>(MN[en(d)[0]]||"")+" → "+(MN[en(d)[1]]||""),dirs=[0,1].sort((x,y)=>(en(x)[0]=="S"?0:1)-(en(y)[0]=="S"?0:1));
   const cols=T?visCols(T,day):[],txt=T?DT[line=="360"?"360":"389"][T.day]+(T.day=="N"?(lect(day)?" · lectivo":" · no lectivo"):""):"";
-  h=`<div class="top"><h1>Horarios</h1>${clock()}</div>
+  h=`<div class="top"><h1>Horarios</h1>${clock(T?txt:dtl(day))}</div>
   <div class="card ctl"><label class="fld"><input type="date" id="dp" value="${iso(day)}"></label><button class="btn ${k==ymd(t)?"on":""}" data-d="0">Hoy</button><button class="btn ${k==ymd(tm)?"on":""}" data-d="1">Mañana</button></div>
   <div class="seg">${LINES.map(l=>`<button class="${l==line?"on":""}" data-l="${l}">${l}</button>`).join("")}</div>`+
-  (T?`<div class="seg">${two?[0,1].map(d=>`<button class="${d==T.dir?"on":""}" data-dir="${d}">${lb(d)}</button>`).join(""):`<button class="on">${en(T.dir)[0]==en(T.dir)[1]?"Circuito escolar en "+MN[en(T.dir)[0]]:lb(T.dir)}</button>`}</div><div class="cnt"><b>${cols.length} salidas</b><span>${txt}</span></div>`:"")}
+  (T?`<div class="seg">${two?dirs.map(d=>`<button class="${d==T.dir?"on":""}" data-dir="${d}">${lb(d)}</button>`).join(""):`<button class="on">${en(T.dir)[0]==en(T.dir)[1]?"Circuito escolar en "+MN[en(T.dir)[0]]:lb(T.dir)}</button>`}</div>`:"")}
  else h=`<div class="top"><h1>Cerca de mí</h1>${clock()}</div>
   <div class="card ctl"><div class="loc">${AIM}<span>${pos?"Ubicación activa"+(acc?" · ±"+acc+" m":""):esc(gpsMsg||"Buscando tu ubicación…")}</span></div><button class="btn dk" id="gps">${pos?"Actualizar":"Reintentar"}</button></div>
   <div class="seg"><button data-tw="M" class="${town=="M"?"on":""}">Estoy en Mollet</button><button data-tw="S" class="${town=="S"?"on":""}">Estoy en Sant Fost</button></div>`;
@@ -111,7 +111,7 @@ function renderH(){const T=tableFor(line,day,dir),m=$("#m"),k=ymd(day);
  const cols=visCols(T,day),b=near(T),isT=k==ymd(today());let nx=-1,bt=1e9;
  if(b&&isT){const need=nowMin()+Math.ceil(b.d/80);cols.forEach((c,j)=>{const t=c.t[b.i];if(t>=need&&t<bt){bt=t;nx=j}})}
  const mixed=new Set(cols.map(c=>c.l)).size>1;
- let h=pos?(b?`<div class="bar"><span>● <b>${esc(b.n)}</b> · ${Math.round(b.d)} m · ${Math.max(1,Math.round(b.d/80))} min${isT?(nx>=0?` · <b>sale ${fmt(bt)}</b>`:" · sin más salidas hoy"):""}</span></div>`:""):(gpsMsg?`<div class="bar"><span>${esc(gpsMsg)}</span><button id="gps">Reintentar</button></div>`:"");
+ let h="";
  let pm=null;
  h+=`<div class="tw card"><table><tr><th class="n">PARADA</th>${cols.map((c,j)=>`<th class="${j==nx?"nx":""}">${mixed?`<span class="badge" style="background:${COL[c.l]||"#555"}">${c.l}</span>`:j+1}</th>`).join("")}</tr>`+
  T.r.map((r,i)=>{const mn=ST[r[0]][3]||"",dv=mn!=pm?`<tr class="dv"><td colspan="${cols.length+1}"><span>${esc(mn.toUpperCase())}</span></td></tr>`:"";pm=mn;const f=FAV.has(r[0])?"fav":"";
